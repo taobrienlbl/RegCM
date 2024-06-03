@@ -49,8 +49,8 @@ parser.add_argument('--addnoise2d', \
                   help="Adds noise to the temperature field; same perterbation applied along y-axis",default = False, action = 'store_true')
 parser.add_argument('--noaddnoise', \
                   help="Don't add noise to the temperature field",default = False, action = 'store_true')
-parser.add_argument('--hydrostatic', \
-                  help="Generate B/Cs for a hydrostatic dynamical core",default = False, action = 'store_true')
+parser.add_argument('--idynamic', \
+                  help="Generate B/Cs for a hydrostatic dynamical core",type = int, default = 2)
 parser.add_argument('--regcmatmfiles', \
                   help="RegCM ATM files from which to generate ICBCs--use these instead of TOGA COARE ICBCs",nargs='*')
 parser.add_argument('--domainfile', \
@@ -64,7 +64,7 @@ do_clobber = parsed_args['clobber']
 be_verbose = not parsed_args['quiet']
 add_noise_2d = parsed_args['addnoise2d']
 add_noise = not parsed_args['noaddnoise']
-do_hydrostatic = parsed_args['hydrostatic']
+idynamic = parsed_args['idynamic']
 input_domain_file = parsed_args['domainfile']
 
 # Check if we are using RegCM files to generate the soundings
@@ -73,7 +73,7 @@ if parsed_args['regcmatmfiles'] is not None:
     regcmatmfiles = parsed_args['regcmatmfiles'][:]
     use_toga_coare = False
 
-    if input_domain_file is None and not do_hydrostatic:
+    if input_domain_file is None and (idynamic != 1):
         print("Error: --domainfile is required along with --regcmatmfiles for nonhydrostatic runs")
         parser.print_help()
         quit()
@@ -181,7 +181,7 @@ else:
     for var in (t,qv,pp,ps):
         var /= denominator
 
-    if not do_hydrostatic:
+    if idynamic == 2:
         # extract nonhydrostatic reference profiles from the domain file
         with nc.Dataset(input_domain_file,'r') as fin:
             ps0 = average(fin.variables['ps0'][:])
@@ -253,7 +253,7 @@ for nml_file in input_files:
     #******************************************
     if use_toga_coare:
         ts0 = scipy.interpolate.splev(1.0,toga_interp_knots[b't'])
-    domain_file_path = initialize_domain(icbc_directory,domain_name,iy,jx,kz,dx,ptop,ts0,do_clobber,be_verbose,do_hydrostatic)
+    domain_file_path = initialize_domain(icbc_directory,domain_name,iy,jx,kz,dx,ptop,ts0,do_clobber,be_verbose,idynamic)
     
     with nc.Dataset(domain_file_path,'r+') as fout:
         #****************************
@@ -279,7 +279,7 @@ for nml_file in input_files:
         fout.variables['sigma'][:] = sigma
 
 
-        if not do_hydrostatic:
+        if idynamic == 2:
             
             if use_toga_coare:
                 # set reference profiles based on input sounding
@@ -364,10 +364,27 @@ for nml_file in input_files:
                                          bc_frequency, \
                                          do_clobber, \
                                          be_verbose, \
-                                         do_hydrostatic)
+                                         idynamic)
 
         # write the ICBCs
         with nc.Dataset(icbc_file_path,"r+") as fout:
+            #************************
+            # Write simple variables
+            #************************
+            fout.variables['ptop'][:] = ptop*10
+            fout.variables['xlon'][:] = 0.0
+            fout.variables['xlat'][:] = 0.0
+            fout.variables['dlon'][:] = 0.0
+            fout.variables['dlat'][:] = 0.0
+            fout.variables['mask'][:] = 0.0
+            fout.variables['topo'][:] = 0.0
+            fout.variables['u'][:] = 1.e-7
+            fout.variables['v'][:] = 1.e-7
+            if idynamic == 2:
+                fout.variables['w'][:] = 1.e-7
+                fout.variables['pp'][:] = 1.e-7
+                fout.variables['wtop'][:] = 1.e-7
+
             #****************************
             # Write custom run variables
             #****************************
@@ -384,7 +401,7 @@ for nml_file in input_files:
 
             # surface pressure
             if use_toga_coare:
-                if do_hydrostatic:
+                if idynamic == 1:
                     ps = 101325
                 else:
                     psp = scipy.interpolate.splev(1.0,toga_interp_knots[b'pp'])

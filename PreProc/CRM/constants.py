@@ -28,7 +28,7 @@ for i in icontinue[::-1]:
     var_defs.pop(i+1)
 
 # remove any non equation lines and remove fortran precision specifiers
-var_defs = [ line.replace('_rkx','').replace('_rk4','') for line in var_defs if '=' in line ]
+var_defs = [ line.replace('_rkx','').replace('_rk4','').replace('_rk8','') for line in var_defs if '=' in line ]
 
 # evaluate these lines as Python code to load the variables into memory
 for line in var_defs:

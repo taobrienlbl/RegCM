@@ -18,7 +18,7 @@ def initialize_icbc(    icbc_directory, \
                         bc_frequency, \
                         do_clobber = False, \
                         be_verbose = True, \
-                        do_hydrostatic = False):
+                        idynamic = 2):
     """ Initializes a RegCM CRM domain file.
 
         input:
@@ -47,7 +47,7 @@ def initialize_icbc(    icbc_directory, \
 
             be_verbose          : flags whether to print status statements
 
-            do_hydrostatic      : flags whether to generate hydrostatic boundary conditions
+            idynamic            : sets which dynamical core to use
 
         returns:
         --------
@@ -196,7 +196,7 @@ def initialize_icbc(    icbc_directory, \
         vv.grid_mapping = "crs"
         vv.cell_methods = "time: point"
 
-        if not do_hydrostatic:
+        if idynamic == 2:
             vw = fout.createVariable("w",'f4',("time", "kz", "iy", "jx"))
             vw.long_name = "Vertical wind"
             vw.standard_name = "upward_air_velocity"
@@ -252,6 +252,7 @@ def initialize_icbc(    icbc_directory, \
         fout.grid_size_in_meters = dx
         fout.latitude_of_projection_origin = 0.
         fout.longitude_of_projection_origin = 180.
+        fout.index_of_projection_origin = float(jx)/2., float(iy)/2.
         fout.grid_factor = 0.
         fout.atm_source = "TOGA-COARE"
         
@@ -267,7 +268,7 @@ def initialize_icbc(    icbc_directory, \
         vtopo[:] = 0.0
         vu[:] = 1.e-7
         vv[:] = 1.e-7
-        if not do_hydrostatic:
+        if idynamic == 2:
             vw[:] = 1.e-7
             vpp[:] = 1.e-7
             vwtop[:] = 1.e-7

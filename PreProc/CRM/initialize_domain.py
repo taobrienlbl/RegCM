@@ -22,7 +22,7 @@ def initialize_domain(  icbc_directory,
                         ts0, \
                         do_clobber = False,
                         be_verbose = True, \
-                        do_hydrostatic = False):
+                        idynamic = 3):
     """ Initializes a RegCM CRM domain file.
 
         input:
@@ -45,7 +45,7 @@ def initialize_domain(  icbc_directory,
 
             be_verbose      : flags whether to print status statements
 
-            do_hydrostatic      : flags whether to generate hydrostatic boundary conditions
+            idynamic        : sets which dynamical core to use
 
         returns:
         --------
@@ -244,7 +244,14 @@ def initialize_domain(  icbc_directory,
         vtexture_fraction.coordinates = "xlat xlon"
         vtexture_fraction.grid_mapping = "crs"
 
-        if not do_hydrostatic:
+        areacella = fout.createVariable("areacella",'f8',("iy", "jx"))
+        areacella.long_name = "Atmosphere >Grid-Cell Area"
+        areacella.standard_name = "cell_area"
+        areacella.units = "m2"
+        areacella.coordinates = "xlat xlon"
+        areacella.grid_mapping = "crs"
+
+        if idynamic == 2:
             vps0 = fout.createVariable("ps0",'f8',("iy", "jx"))
             vps0.long_name = "Reference State Surface Pressure"
             vps0.standard_name = "air_pressure"
@@ -310,6 +317,7 @@ def initialize_domain(  icbc_directory,
         fout.grid_size_in_meters = dx
         fout.latitude_of_projection_origin = 0.
         fout.longitude_of_projection_origin = 180.
+        fout.index_of_projection_origin = float(jx)/2., float(iy)/2.
         fout.grid_factor = 0.
         fout.boundary_smoothing = "No"
         fout.minimum_h2o_pct_for_water = 50.
@@ -319,7 +327,7 @@ def initialize_domain(  icbc_directory,
         fout.landuse_fudging = "No"
         fout.texture_fudging = "No"
         fout.initialized_soil_moisture = "No"
-        if not do_hydrostatic:
+        if idynamic == 2:
             fout.base_state_surface_temperature = ts0
         
         #************************
@@ -340,6 +348,7 @@ def initialize_domain(  icbc_directory,
         vtexture[:] = 14
         vrmoist[:] = -1
         vtexture_fraction[:] = 0.0
+        areacella[:] = dx*dx
         vsoil_layer[:] = 0.0
 
         return domain_file_path
